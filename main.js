@@ -78,12 +78,40 @@ cc.Cube = cc.CustomRenderer.extend({
     
     // ctor
     ctor:function () {
+        this._vertices = null;
+        this._texCoords = null;
+        this._colors = null;
+        this._indices = null;
+        this._texCoordsBuffer = null;
+        this._verticesBuffer = null;
+        this._colorsBuffer = null;
+        this._indicesBuffer = null;
     }
     
     vertex:function() {}
     getVertex:function() {}
     setVertex:function() {}
-    computeRenderData:function() {} // computes AND upload
+    computeRenderData:function() {
+        var gl = cc._renderContext;
+        var numPoints = 8;
+        this._vertices = new Float32Array(numOfPoints * 3);
+        this._texCoords = new Float32Array(numOfPoints * 2);
+        this._colors = new Float32Array(numOfPoints * 4);
+        this._indices = new Uint16Array(36);
+        
+        if(this._verticesBuffer) gl.deleteBuffer(this._verticesBuffer);
+        if(this._texCoordsBuffer) gl.deleteBuffer(this._texCoordsBuffer);
+        if(this._colorsBuffer) gl.deleteBuffer(this._colorsBuffer);
+        if(this._indicesBuffer) gl.deleteBuffer(this._indicesBuffer);
+        
+        this._texCoordsBuffer = gl.createBuffer();
+        this._verticesBuffer = gl.createBuffer();
+        this._colorsBuffer = gl.createBuffer();
+        this._indicesBuffer = gl.createBuffer();
+        
+        this._vertices[0] = ;
+        
+    } // computes AND upload
 });
 
 // Runtime extending the object
