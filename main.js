@@ -40,8 +40,30 @@ void main()
 
 cc.CustomRenderer = cc.Class.extend({
     _shaderProgram: null,
+    _active:false,
     
-    ctor:function() {},
+    ctor:function() {
+        cc.sys._checkWebGLRenderMode();
+        this._active = false;
+        this._shaderProgram = null;
+    },
+    
+    setIsActive:function(active) {
+        this._active = active;
+    },
+    
+    beforeDraw:function() {
+        var size = cc.director.getWinSizeInPixels();
+        gl.viewport(0, 0, size.width , size.height);
+    },
+    
+    draw:function() {
+        cc.Log("");
+    },
+    
+    afterDraw:function(target) {
+        cc.director.setViewport();
+    },
 });
 
 cc.Cube = cc.CustomRenderer.extend({
