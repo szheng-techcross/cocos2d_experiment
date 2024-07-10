@@ -6,7 +6,6 @@ window.onload = function()
 
 var vsShader = 
 `
-
 uniform mat4 u_vp;
 uniform mat4 u_world;
 
@@ -26,15 +25,16 @@ void main()
 
 `;
 var psShader =
+//uniform sampler2D sprite;
 `
-uniform sampler2D sprite;
 
 varying vec2 oTex;
 varying vec4 oColor;
 
 void main()
 {
-    gl_FragColor = oColor * texture2D(sprite, oTex);
+    // gl_FragColor = oColor * texture2D(sprite, oTex);
+    gl_FragColor = oColor;
 }
 `;
 
@@ -53,8 +53,6 @@ cc.CustomRenderer = cc.Class.extend({
     },
     
     beforeDraw:function() {
-        var size = cc.director.getWinSizeInPixels();
-        gl.viewport(0, 0, size.width , size.height);
     },
     
     draw:function() {
@@ -62,19 +60,18 @@ cc.CustomRenderer = cc.Class.extend({
     },
     
     afterDraw:function(target) {
-        cc.director.setViewport();
     },
 });
 
 cc.Cube = cc.CustomRenderer.extend({
-    _vertices: null;
-    _texCoords: null;
-    _colors: null;
-    _indices: null;
-    _texCoordsBuffer: null;
-    _verticesBuffer: null;
-    _colorsBuffer: null;
-    _indicesBuffer: null;
+    _vertices: null,
+    _texCoords: null,
+    _colors: null,
+    _indices: null,
+    _texCoordsBuffer: null,
+    _verticesBuffer: null,
+    _colorsBuffer: null,
+    _indicesBuffer: null,
     
     // ctor
     ctor:function () {
@@ -86,17 +83,17 @@ cc.Cube = cc.CustomRenderer.extend({
         this._verticesBuffer = null;
         this._colorsBuffer = null;
         this._indicesBuffer = null;
-    }
+    },
     
-    vertex:function() {}
-    getVertex:function() {}
-    setVertex:function() {}
+    // vertex:function() {},
+    // getVertex:function() {},
+    // setVertex:function() {},
     computeRenderData:function() {
         var gl = cc._renderContext;
         var numPoints = 8;
-        this._vertices = new Float32Array(numOfPoints * 3);
-        this._texCoords = new Float32Array(numOfPoints * 2);
-        this._colors = new Float32Array(numOfPoints * 4);
+        this._vertices = new Float32Array(numPoints * 3);
+        this._texCoords = new Float32Array(numPoints * 2);
+        this._colors = new Float32Array(numPoints * 4);
         this._indices = new Uint16Array(36);
         
         if(this._verticesBuffer) gl.deleteBuffer(this._verticesBuffer);
@@ -109,25 +106,226 @@ cc.Cube = cc.CustomRenderer.extend({
         this._colorsBuffer = gl.createBuffer();
         this._indicesBuffer = gl.createBuffer();
         
-        this._vertices[0] = ;
+        // 
+        this._vertices[0] = -0.5;
+        this._vertices[1] = -0.5;
+        this._vertices[2] = -0.5;
+        this._texCoords[0] = 0.0;
+        this._texCoords[1] = 0.0;
+        this._colors[0] = 1.0;
+        this._colors[1] = 1.0;
+        this._colors[2] = 1.0;
+        this._colors[3] = 1.0;
+
+        this._vertices[3] = +0.5;
+        this._vertices[4] = -0.5;
+        this._vertices[5] = -0.5;
+        this._texCoords[2] = 1.0;
+        this._texCoords[3] = 0.0;
+        this._colors[4] = 1.0;
+        this._colors[5] = 1.0;
+        this._colors[6] = 1.0;
+        this._colors[7] = 1.0;
+
+        this._vertices[6] = +0.5;
+        this._vertices[7] = +0.5;
+        this._vertices[8] = -0.5;
+        this._texCoords[4] = 1.0;
+        this._texCoords[5] = 1.0;
+        this._colors[8] = 1.0;
+        this._colors[9] = 1.0;
+        this._colors[10] = 1.0;
+        this._colors[11] = 1.0;
+
+        this._vertices[9]  = -0.5;
+        this._vertices[10] = +0.5;
+        this._vertices[11] = -0.5;
+        this._texCoords[6] = 0.0;
+        this._texCoords[7] = 1.0;
+        this._colors[12] = 1.0;
+        this._colors[13] = 1.0;
+        this._colors[14] = 1.0;
+        this._colors[15] = 1.0;
+
+        //
+        this._vertices[12] = +0.5;
+        this._vertices[13] = -0.5;
+        this._vertices[14] = +0.5;
+        this._texCoords[8] = 0.0;
+        this._texCoords[9] = 0.0;
+        this._colors[16] = 1.0;
+        this._colors[17] = 1.0;
+        this._colors[18] = 1.0;
+        this._colors[19] = 1.0;
+
+        this._vertices[15] = -0.5;
+        this._vertices[16] = -0.5;
+        this._vertices[17] = +0.5;
+        this._texCoords[10] = 1.0;
+        this._texCoords[11] = 0.0;
+        this._colors[20] = 1.0;
+        this._colors[21] = 1.0;
+        this._colors[22] = 1.0;
+        this._colors[23] = 1.0;
+
+        this._vertices[18] = -0.5;
+        this._vertices[19] = +0.5;
+        this._vertices[20] = +0.5;
+        this._texCoords[12] = 1.0;
+        this._texCoords[13] = 1.0;
+        this._colors[24] = 1.0;
+        this._colors[25] = 1.0;
+        this._colors[26] = 1.0;
+        this._colors[27] = 1.0;
+
+        this._vertices[21]  = +0.5;
+        this._vertices[22] = +0.5;
+        this._vertices[23] = +0.5;
+        this._texCoords[14] = 0.0;
+        this._texCoords[15] = 1.0;
+        this._colors[28] = 1.0;
+        this._colors[29] = 1.0;
+        this._colors[30] = 1.0;
+        this._colors[31] = 1.0;
+
+        // Indices
+        // Front
+        this._indices[0] = 0;
+        this._indices[1] = 1;
+        this._indices[2] = 2;
+        this._indices[3] = 0;
+        this._indices[4] = 2;
+        this._indices[5] = 3;
         
-    } // computes AND upload
+        // Top
+        this._indices[6] = 3;
+        this._indices[7] = 2;
+        this._indices[8] = 6;
+        this._indices[9] = 3;
+        this._indices[10] = 6;
+        this._indices[11] = 7;
+        
+        // Bottom
+        this._indices[12] = 0;
+        this._indices[13] = 1;
+        this._indices[14] = 4;
+        this._indices[15] = 0;
+        this._indices[16] = 4;
+        this._indices[17] = 5;
+        
+        // Right
+        this._indices[18] = 1;
+        this._indices[19] = 4;
+        this._indices[20] = 7;
+        this._indices[21] = 1;
+        this._indices[22] = 7;
+        this._indices[23] = 2;
+        
+        // Left
+        this._indices[24] = 0;
+        this._indices[25] = 3;
+        this._indices[26] = 6;
+        this._indices[27] = 0;
+        this._indices[28] = 6;
+        this._indices[29] = 5;
+        
+        // Back
+        this._indices[30] = 5;
+        this._indices[31] = 6;
+        this._indices[32] = 7;
+        this._indices[33] = 5;
+        this._indices[34] = 7;
+        this._indices[35] = 8;
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this._verticesBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, this._vertices, gl.DYNAMIC_DRAW);
+        
+        gl.bindBuffer(gl.ARRAY_BUFFER, this._texCoordsBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, this._texCoords, gl.DYNAMIC_DRAW);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this._colorsBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, this._colorsBuffer, gl.DYNAMIC_DRAW);
+
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._indicesBuffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this._indices, gl.STATIC_DRAW);
+    }, // computes AND upload
+
+    beforeDraw: function() {
+        // super.beforeDraw();
+
+        var gl = cc._renderContext;
+        var size = cc.director.getWinSizeInPixels();
+        var view = cc.view,
+            ox = view._viewPortRect.x / view._scaleX,
+            oy = view._viewPortRect.y / view._scaleY;
+
+        var matrixPerspective = new cc.math.Matrix4(), matrixLookup = new cc.math.Matrix4(), resultMatrix = new cc.math.Matrix4();
+        cc.kmGLMatrixMode(cc.KM_GL_PROJECTION);
+        cc.kmGLLoadIdentity();
+        matrixPerspective = cc.math.Matrix4.createPerspectiveProjection(60, size.width / size.height, 0.1, 1000.0);
+        cc.kmGLMultMatrix(matrixPerspective);
+        cc.kmGLMatrixMode(cc.KM_GL_MODELVIEW);
+        cc.kmGLLoadIdentity();
+        var eye = new cc.math.Vec3(-ox + size.width / 2, -oy + size.height / 2, 10.0);
+        var center = new cc.math.Vec3( -ox + size.width / 2, -oy + size.height / 2, 0.0);
+        var up = new cc.math.Vec3( 0.0, 1.0, 0.0);
+        matrixLookup.lookAt(eye, center, up);
+        cc.kmGLMultMatrix(matrixLookup);
+        cc.kmMat4Multiply(resultMatrix, matrixPerspective, matrixLookup);
+
+        this._shaderProgram.setUniformLocationWithMatrix4fv("u_vp", resultMatrix.mat);
+        // gl.uniformMatrix4fv(gl.getUniformLocation(this._shaderProgram._programObj, "u_vp", name), 
+        //     false, resultMatrix);
+        var identity = new cc.math.Matrix4();
+        identity.identity();
+        this._shaderProgram.setUniformLocationWithMatrix4fv("u_world", identity.mat);
+    },
+
+    draw: function() {
+        var gl = cc._renderContext;
+        var size = cc.director.getWinSizeInPixels();
+        gl.viewport(0, 0, size.width , size.height);
+
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        gl.enableVertexAttribArray(0);
+        gl.enableVertexAttribArray(1);
+        gl.enableVertexAttribArray(2);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this._verticesBuffer);
+        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this._texCoordsBuffer);
+        gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this._colorsBuffer);
+        gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 0, 0);
+
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._indicesBuffer);
+
+        gl.drawElements(gl.TRIANGLES, 35, gl.UNSIGNED_SHORT, 0);
+        cc.incrementGLDraws(1);
+    },
+
+    afterDraw: function() {
+        // super.afterDraw();
+
+
+    }
 });
 
 // Runtime extending the object
-(function(){
-    cc.3DRender.CanvasRenderCmd = function(rendableObject){
-        cc.Node.WebGLRenderCmd.call(this, rendableObject);
-        //
-        this.initCmd();
-    }
+// (function(){
+//     cc.3DRender.CanvasRenderCmd = function(rendableObject){
+//         cc.Node.WebGLRenderCmd.call(this, rendableObject);
+//         //
+//         this.initCmd();
+//     }
     
-    var proto = cc.3DRender.WebGLRenderCmd.prototype = Object.create(cc.Node.WebGLRenderCmd.prototype);
-    proto.constructor = cc.3DRender.WebGLRenderCmd;
-    proto.transform = function(parentCmd, recursive) {
+//     var proto = cc.3DRender.WebGLRenderCmd.prototype = Object.create(cc.Node.WebGLRenderCmd.prototype);
+//     proto.constructor = cc.3DRender.WebGLRenderCmd;
+//     proto.transform = function(parentCmd, recursive) {
         
-    }
-})();
+//     }
+// })();
 
 
 function OnStart()
@@ -143,6 +341,7 @@ function OnStart()
     //load resources
     cc.LoaderScene.preload(["HelloWorld.png"], function () {
       var MyScene = cc.Scene.extend({
+          _cube: null,
           onEnter:function () {
               this._super();
               var size = cc.director.getWinSize();
@@ -156,12 +355,19 @@ function OnStart()
               this.addChild(label, 1);
               
               // var primitives = new cc.DrawingPrimitiveWebGL();
+              this._cube = new cc.Cube();
+              this._cube.computeRenderData();
+              this._cube._shaderProgram = program;
               
-              var node = cc.Node.create();
-              node.getShaderProgram(program);
-              node.RenderCmd. ;
-              this.addChild(node);
-          }
+              this.schedule(
+                function(dt) {
+                    console.log(dt);
+                    if(this._cube) {
+                        this._cube.beforeDraw();
+                        this._cube.draw();
+                    }
+              }, 0, 33, 0);
+          },
       });
       cc.director.runScene(new MyScene());
       
