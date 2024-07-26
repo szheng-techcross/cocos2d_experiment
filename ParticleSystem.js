@@ -76,7 +76,6 @@ function createGLProgram(gl, shader_list, transform_feedback_varyings) {
         out float v_Age;
         out float v_Life;
         out vec2 v_TexCoord;
-        out vec2 v_Normal;
         out vec2 v_Position;
 
         vec2 rotate(vec2 v, float a) {
@@ -90,20 +89,17 @@ function createGLProgram(gl, shader_list, transform_feedback_varyings) {
             float m = mod(i_Age, 0.25);
             // vec2 vert_coord = i_Position + (0.75*(1.0-i_Age / i_Life) + 0.25) * u_size * i_Coord; // size reduction
             int s = gl_InstanceID % 2;
-            vec2 vert_coord = i_Position;
-            float angle = 0.25 * cos(i_Age / i_Life * 40.f) + 0.785398f;
-            if(s == 0) {
-                vert_coord += u_size * rotate(i_Coord, angle); // self rotation
-            } else {
-                vert_coord += u_size * -rotate(i_Coord, angle); // self rotation
-            }
-            // vec2 vert_coord = i_Position + u_size * i_Coord;
+            // vec2 vert_coord = i_Position;
+            // if(s == 0) {
+            //     vert_coord += u_size * rotate(i_Coord, 0.25 * cos(i_Age / i_Life * 40.f) + 0.785398f); // self rotation
+            // } else {
+            //     vert_coord += u_size * -rotate(i_Coord, 0.25 * cos(i_Age / i_Life * 40.f) + 0.785398f); // self rotation
+            // }
+            vec2 vert_coord = i_Position + u_size * i_Coord;
             v_Age = i_Age;
             v_Life = i_Life;
             v_TexCoord = i_TexCoord;
-            // v_Normal = normalize(rotate(vec2(0, 1), angle));
-            v_Normal = vec2(0, 1.0);
-            v_Position = i_Position;
+            v_Position = vert_coord;
             gl_Position = u_wvp * vec4(vert_coord, 0.0, 1.0);
         }
     `;
@@ -117,25 +113,26 @@ function createGLProgram(gl, shader_list, transform_feedback_varyings) {
         in float v_Age;
         in float v_Life;
         in vec2 v_TexCoord;
-        in vec2 v_Normal;
         in vec2 v_Position;
 
         out vec4 o_FragColor;
-        // vec3(0.75164, 0.60648, 0.22648);
-        // vec3(0.628281, 0.555802, 0.366065)
+
+        float dfLine(vec2 O, vec2 dir, vec2 P)
+        {
+            vec2 D = normalize(dir);
+            vec2 X = O + D * dot(P-O, D);
+
+            return distance(P, X);
+        }
 
         void main() {
-            vec4 texColor = texture(u_Sprite, v_TexCoord);
-            float t =  v_Age/v_Life;
-            vec2 dir = normalize(-vec2(-1.0, -1.0));
-            vec2 viewDir = normalize(v_Position);
-            vec2 r   = reflect(viewDir, v_Normal);
-            float diff = max(dot(v_Normal, dir), 0.0);
-            vec4 diffColor = diff * texColor;
-            float spec = pow(max(dot(viewDir, r), 0.0), 51.2f);
-            vec3 specColor = 0.5 * spec * vec3(1.0, 0.83, 0.0);
-            o_FragColor = vec4(specColor, 1.0f) + diffColor;
-            o_FragColor.a = texColor.a;
+            float d = dfLine(vec2(0, -200), vec2(1, 200), v_Position);
+            float dd = d + sqrt(1000.0f) * 0.9f;
+            float dd2 = dd * dd;
+            vec3 dcolor = 1000.0f / dd2 * vec3(1.0f, 1.0f, 1.0f);
+            vec3 bcolor = min(10000.0f / d, 0.95f) * vec3(1.0f, 1.0f, 1.0f);
+            // vec3 scolor = 10.0f / (d2 + 5.0) * vec3(1.f, 1.f, 1.f);
+            o_FragColor = vec4(dcolor + bcolor, 1.0f) * texture(u_Sprite, v_TexCoord);
         }
     `;
 
@@ -492,7 +489,7 @@ function createGLProgram(gl, shader_list, transform_feedback_varyings) {
             state.old_timestamp = dt;
             // Set born_particles (new frame number)
             renderState.num_part = state.born_particles;
-            if (state.born_particles < state.num_particles && state.last_spawn_time > 2000.0) {
+            if (state.born_particles < state.num_particles && state.last_spawn_time > 50.0) {
                 // state.born_particles = Math.min(state.num_particles,
                 //     Math.floor(state.born_particles + state.birth_rate * this._renderState.dt));
                 state.born_particles = Math.min(state.num_particles, state.born_particles + 1);

@@ -49,7 +49,7 @@
                 }
                 else
                 {
-                    v_Velocity.x = 5.f * cos(5.f * i_Age + i_Life * 100.f);
+                    v_Velocity.x = 50.f * cos(5.f * i_Age + i_Life * 100.f);
                 }
 
                 // vec2 dir = u_PushOut - v_Position;
@@ -73,20 +73,20 @@
 
     cc.RainPSys = cc.PSys.extend({
         _className: "RainPSys",
-        origin: [0, 250],
+        origin: [0, 200],
         born_particles: 0,
         old_timestamp: 0,
-        num_particles: 30,
+        num_particles: 1000,
         total_time: 0,
-        gravity: [0, -0.05],
+        gravity: [0, -500.0],
         birth_rate: 0.,
         min_theta: -Math.PI,
         max_theta: Math.PI,
-        min_speed: 5.0,
-        max_speed: 8.5,
+        min_speed: 45.0,
+        max_speed: 50.5,
         size: 25.0,
-        min_age: 150.5,
-        max_age: 200.8,
+        min_age: 25.5,
+        max_age: 30.8,
         last_spawn_time: 0.0,
 
         ctor: function (filename, rect, rotated) {
@@ -183,7 +183,7 @@
             var data = [];
             for (var i = 0; i < num_parts; ++i) {
                 data.push(0.0);
-                data.push(300.0);
+                data.push(250.0);
                 var life = min_age + Math.random() * (max_age - min_age);
                 // var life = 0.0;
                 data.push(life + 1);

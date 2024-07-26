@@ -1,11 +1,17 @@
 <!DOCTYPE html>
-<html>
+<html style="width: 100%;height: 100%; background-color: darkslateblue;">
 <head>
     <title>Hello Cocos2d-JS</title>
 </head>
-<body>   
-    <canvas id="gameCanvas" width="800" height="450"></canvas>
+<body>
+    <div style="width: 100%;height: 100%;display: flex; flex-direction: row;gap: 10px;">
+        <canvas id="gameCanvas" width="450" height="800"></canvas>
+        <canvas id="debug_canvas" width="800" height="800"></canvas>
+    </div>
     <script type="text/javascript" src="cocos2d-js-v3.13.js" charset="UTF-8"></script>
+    <script type="text/javascript" src="patchcocos.js" charset="UTF-8"></script>
+    <script type="text/javascript" src="imgui//imgui.umd.js" charset="UTF-8"></script>
+    <script type="text/javascript" src="imgui/imgui_impl.umd.js" charset="UTF-8"></script>
     <!-- <script src = "particle.js" type = "text/javascript"></script> -->
     <!-- <script src = "gpu.js" type = "text/javascript"></script> -->
     <script src = "ParticleSystem.js" type = "text/javascript"></script>
