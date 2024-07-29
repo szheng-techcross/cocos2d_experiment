@@ -19,11 +19,13 @@
         in float i_Age;
         in float i_Life;
         in vec2 i_Velocity;
+        in float i_Size;
 
         out vec2 v_Position;
         out float v_Age;
         out float v_Life;
         out vec2 v_Velocity;
+        out float v_Size;
 
         void main() {
             if (i_Age >= i_Life) {
@@ -37,10 +39,12 @@
                 v_Age = 0.0;
                 v_Life = i_Life;
                 v_Velocity = vec2(0, -1) * (u_MinSpeed + rand.g * (u_MaxSpeed - u_MinSpeed));
+                v_Size = rand.r;
             } else {
                 v_Position = i_Position + i_Velocity * u_TimeDelta;
                 v_Age = i_Age + u_TimeDelta;
                 v_Life = i_Life;
+                v_Size = i_Size;
                 v_Velocity = i_Velocity + u_Gravity * u_TimeDelta;
                 if(v_Position.y < -u_WindowSize.y / 2.0)
                 {
@@ -67,7 +71,7 @@
     var passthru_frag_shader = `
         #version 300 es
         precision mediump float;
-        in float v_Age;
+        in float i_Age;
         void main() { discard; }
     `;
 
@@ -99,6 +103,9 @@
     });
 
     cc.RainPSys.create = function (filename, rect, rotated) {
+        if(!cc._checkWebgl2Support()) {
+            return new cc.Node();
+        }
         return new cc.RainPSys(filename, rect, rotated);
     };
 
@@ -130,6 +137,7 @@
                     "v_Age",
                     "v_Life",
                     "v_Velocity",
+                    "v_Size",
                 ]);
             this._renderVaos = [gl.createVertexArray(), gl.createVertexArray()];
 
@@ -153,7 +161,12 @@
                     location: gl.getAttribLocation(this._particleProgram, "i_Velocity"),
                     num_components: 2,
                     type: gl.FLOAT
-                }
+                },
+                i_Size: {
+                    location: gl.getAttribLocation(this._particleProgram, "i_Size"),
+                    num_components: 1,
+                    type: gl.FLOAT
+                },
             };
 
             this._renderVaoDescs = [
@@ -162,7 +175,7 @@
                     buffers: [{
                         // TODO: This is a problem
                         buffer_object: this._renderState.buffers[0],
-                        stride: 4 * 6,
+                        stride: 4 * 7,
                         attribs: this._update_attrib_locations
                     }]
                 },
@@ -170,7 +183,7 @@
                     vao: this._renderVaos[1],
                     buffers: [{
                         buffer_object: this._renderState.buffers[1],
-                        stride: 4 * 6,
+                        stride: 4 * 7,
                         attribs: this._update_attrib_locations
                     }]
                 }
@@ -190,6 +203,7 @@
                 data.push(life);
                 data.push(0.0);
                 data.push(0.0);
+                data.push(1.0);
             }
             return data;
         }

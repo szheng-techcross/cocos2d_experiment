@@ -9,17 +9,111 @@ var ui_context = {
   selectedNode: null,
 };
 
-function imgui_inspectRainSys(node) {
+function CreateAccesor(v) {
+  return new Accesor(v);
+}
+
+function imgui_inspectNodeInfo(node) {
   if (ImGui.Checkbox("Visible", () => node._visible)) {
     node.setVisible(!node._visible);
   }
+}
 
-  ImGui.Text("Max Particle count: " +node.num_particles);
+function imgui_inspectRainSys(node) {
+  imgui_inspectNodeInfo(node);
+
+  if (ImGui.Button("Particle reset")) {
+    node.born_particles = 0;
+    node._renderCmd.initData(cc._renderContext);
+  }
+
   ImGui.Text("Born particles: " + node.born_particles);
   ImGui.Text("Birth rate: " + node.birth_rate);
   ImGui.Text("Min speed: " + node.min_speed);
   ImGui.Text("Max speed: " + node.max_speed);
-  ImGui.Text("Size: " + node.size);
+
+  ImGui.SliderInt("Max Particles", (v) => {
+    if (v !== undefined) {
+      node.num_particles = v;
+      if (node.born_particles > node.num_particles) {
+        node.born_particles = node.num_particles;
+      }
+    }
+    return node.num_particles;
+  }, 0, 10000);
+
+  ImGui.SliderFloat("Particle Size", (v) => {
+    if (v !== undefined) {
+      node.size = v;
+    }
+    return node.size;
+  }, 1, 100);
+
+  ImGui.Separator();
+  ImGui.Text("Default light")
+
+  ImGui.SliderFloat("Light Position(X)", (v) => {
+    if (v !== undefined) {
+      node.lights[0].position[0] = v;
+    }
+    return node.lights[0].position[0];
+  }, -200, 200);
+  ImGui.SliderFloat("Light Position(Y)", (v) => {
+    if (v !== undefined) {
+      node.lights[0].position[1] = v;
+    }
+    return node.lights[0].position[1];
+  }, -200, 200);
+  ImGui.SliderFloat("Light Direction(X)", (v) => {
+    if (v !== undefined) {
+      node.lights[0].direction[0] = v;
+    }
+    return node.lights[0].direction[0];
+  }, -1.0, 1.0);
+  ImGui.SliderFloat("Light Direction(Y)", (v) => {
+    if (v !== undefined) {
+      node.lights[0].direction[1] = v;
+    }
+    return node.lights[0].direction[1];
+  }, -1.0, 1.0);
+  ImGui.SliderFloat("Light Max", (v) => {
+    if (v !== undefined) {
+      node.lights[0].max_light = v;
+    }
+    return node.lights[0].max_light;
+  }, 0, 1);
+  ImGui.SliderFloat("Light range", (v) => {
+    if (v !== undefined) {
+      node.lights[0].range = v;
+    }
+    return node.lights[0].range;
+  }, 1, 1000);
+  // ImGui.ColorEdit3("Light Color", node.lights[0].color, 0, 1);
+  ImGui.SliderFloat("Light Color Red", (v) => {
+    if (v !== undefined) {
+      node.lights[0].color[0] = v;
+    }
+    return node.lights[0].color[0];
+  }, 0, 1);
+  ImGui.SliderFloat("Light Color Green", (v) => {
+    if (v !== undefined) {
+      node.lights[0].color[1] = v;
+    }
+    return node.lights[0].color[1];
+  }, 0, 1);
+  ImGui.SliderFloat("Light Color Blue", (v) => {
+    if (v !== undefined) {
+      node.lights[0].color[2] = v;
+    }
+    return node.lights[0].color[2];
+  }, 0, 1);
+  ImGui.SliderFloat("Light Intensity", (v) => {
+    if (v !== undefined) {
+      node.lights[0].intensity = v;
+    }
+    return node.lights[0].intensity;
+  }, 0, 10000);
+
 }
 
 function imgui_inspectNode(node) {
@@ -34,11 +128,11 @@ function imgui_inspectNode(node) {
 
     case "Sprite": {
 
-    }break;
+    } break;
 
     case "LabelTTF": {
 
-    }break;
+    } break;
 
     default: {
       console.error("Unsupported node type")
@@ -56,7 +150,7 @@ function imgui_renderNode(node) {
     } else {
       nodeflags |= ImGui.TreeNodeFlags.OpenOnArrow | ImGui.TreeNodeFlags.Framed | ImGui.TreeNodeFlags.SpanAvailWidth;
     }
-    const label = `[${node._className}]` + node._name;
+    const label = `[${node._className}]` + `[${node.__instanceId}]` + node._name + ` [${node.childrenCount}]`;
     if (node.children?.length > 0) {
       if (ImGui.TreeNodeEx(label, nodeflags)) {
         if (ImGui.IsItemClicked() && !ImGui.IsItemToggledOpen()) {
@@ -72,7 +166,7 @@ function imgui_renderNode(node) {
       }
     }
     else {
-      if(ImGui.Selectable(label)) {
+      if (ImGui.Selectable(label)) {
         ui_context.selectedNode = node;
       }
     }
@@ -97,7 +191,7 @@ function OnStart() {
         sprite.setScale(0.8);
         this.addChild(sprite, 0, "main sprite");
 
-        var cube = cc.RainPSys.create("feather_white.png");
+        var cube = cc.RainPSys.create("feather_blue2.png");
         this.addChild(cube, 1, "particle feather");
 
         var label = cc.LabelTTF.create("Hello World", "Arial", 40);
@@ -142,7 +236,7 @@ function imgui_render(dt) {
   ImGui.End();
 
   if (ui_context.selectedNode) {
-    ImGui.Begin("Inspect");
+    ImGui.Begin(`[${ui_context.selectedNode.__instanceId}]${ui_context.selectedNode._className} - ${ui_context.selectedNode._name}`);
     {
       imgui_inspectNode(ui_context.selectedNode);
     }

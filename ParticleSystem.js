@@ -70,6 +70,8 @@ function createGLProgram(gl, shader_list, transform_feedback_varyings) {
         in vec2 i_Position;
         in float i_Age;
         in float i_Life;
+        in vec2 i_Velocity;
+        in float i_Size;
         in vec2 i_Coord;
         in vec2 i_TexCoord;
 
@@ -77,6 +79,7 @@ function createGLProgram(gl, shader_list, transform_feedback_varyings) {
         out float v_Life;
         out vec2 v_TexCoord;
         out vec2 v_Position;
+        out vec2 v_Velocity;
 
         vec2 rotate(vec2 v, float a) {
             float s = sin(a);
@@ -86,21 +89,22 @@ function createGLProgram(gl, shader_list, transform_feedback_varyings) {
         }
 
         void main() {
-            float m = mod(i_Age, 0.25);
+            // float m = mod(i_Age, 0.25);
             // vec2 vert_coord = i_Position + (0.75*(1.0-i_Age / i_Life) + 0.25) * u_size * i_Coord; // size reduction
-            int s = gl_InstanceID % 2;
+            // int s = gl_InstanceID % 2;
             // vec2 vert_coord = i_Position;
             // if(s == 0) {
             //     vert_coord += u_size * rotate(i_Coord, 0.25 * cos(i_Age / i_Life * 40.f) + 0.785398f); // self rotation
             // } else {
             //     vert_coord += u_size * -rotate(i_Coord, 0.25 * cos(i_Age / i_Life * 40.f) + 0.785398f); // self rotation
             // }
-            vec2 vert_coord = i_Position + u_size * i_Coord;
+            vec2 vert_coord = i_Position + u_size * i_Size * i_Coord;
             v_Age = i_Age;
             v_Life = i_Life;
             v_TexCoord = i_TexCoord;
+            v_Velocity = i_Velocity;
             v_Position = vert_coord;
-            gl_Position = u_wvp * vec4(vert_coord, 0.0, 1.0);
+            gl_Position = u_wvp * vec4(vert_coord, i_Size - 0.5f, 1.0f);
         }
     `;
 
@@ -108,12 +112,32 @@ function createGLProgram(gl, shader_list, transform_feedback_varyings) {
         #version 300 es
         precision mediump float;
 
+        #define MAX_LIGHT_COUNT   8
+        #define LIGHT_SKIP        0
+        #define LIGHT_DIRECTIONAL 1
+        #define LIGHT_POINT       2
+        #define LIGHT_SPOT        3
+
+        struct light {
+            int type;
+            vec3 color;
+            vec2 position;
+            vec2 direction;
+            float range; // in % 
+            float max_light; // in %
+            float intensity; // power, in lumens
+            float angle; // half angle of the cone
+        };
+
         uniform mediump sampler2D u_Sprite;
+        uniform float u_size;
+        uniform light lights[MAX_LIGHT_COUNT];
 
         in float v_Age;
         in float v_Life;
         in vec2 v_TexCoord;
         in vec2 v_Position;
+        in vec2 v_Velocity;
 
         out vec4 o_FragColor;
 
@@ -125,16 +149,82 @@ function createGLProgram(gl, shader_list, transform_feedback_varyings) {
             return distance(P, X);
         }
 
+        vec2 projectionPtToLine(vec2 O, vec2 dir, vec2 P) {
+            vec2 D = normalize(dir);
+            return O + D * dot(P-O, D);
+        }
+
+        vec3 computeDirectionalLight(light lt, vec2 pos) {
+            float distance = dfLine(lt.position, lt.direction, pos);
+            float d = distance + sqrt(lt.intensity) * lt.max_light;
+            float d2 = d * d;
+            return (lt.intensity / d2) * lt.color;
+        }
+
+        vec3 computePointLight(light lt, vec2 pos, float depth) {
+            float d = distance(lt.position, pos) + lt.intensity * lt.max_light;
+            float att = depth * lt.intensity / d;
+            vec3 c = att * lt.color;
+
+            return c;
+        }
+
+        vec3 computeSpotLight(light lt, vec2 pos) {
+            vec2 projectedP = projectionPtToLine(lt.position, lt.direction, pos);
+            float d = min(distance(pos, projectedP) - distance(lt.position, projectedP), 0.0) + sqrt(lt.intensity) * lt.max_light;
+            float d2 = d * d;
+            return lt.intensity / d2 * lt.color;
+        }
+
         void main() {
-            float d = dfLine(vec2(0, -200), vec2(1, 200), v_Position);
-            float dd = d + sqrt(1000.0f) * 0.9f;
-            float dd2 = dd * dd;
-            vec3 dcolor = 1000.0f / dd2 * vec3(1.0f, 1.0f, 1.0f);
-            vec3 bcolor = min(10000.0f / d, 0.95f) * vec3(1.0f, 1.0f, 1.0f);
-            // vec3 scolor = 10.0f / (d2 + 5.0) * vec3(1.f, 1.f, 1.f);
-            o_FragColor = vec4(dcolor + bcolor, 1.0f) * texture(u_Sprite, v_TexCoord);
+            vec3 outputColor = vec3(0.0);
+            for(int i = 0; i < MAX_LIGHT_COUNT; ++i) {
+                light lt = lights[i];
+                if(lt.type == LIGHT_DIRECTIONAL) {
+                    outputColor += computeDirectionalLight(lt, v_Position);
+                }
+                else if(lt.type == LIGHT_POINT) {
+                    outputColor += computePointLight(lt, v_Position, gl_FragCoord.z);
+                }
+                else if(lt.type == LIGHT_SPOT) {
+                    outputColor += computeSpotLight(lt, v_Position);
+                }
+            }
+            o_FragColor = vec4(outputColor, 1.0f) * texture(u_Sprite, v_TexCoord);
         }
     `;
+
+    cc.PSysLight = cc.Class.extend({
+        _className: "PSysLight",
+
+        type: 0, // 0: directional, 1: point, 2: spot
+        color: [0, 0, 0], // r, g, b. Between 0 and 1
+        position: [0, 0],
+        direction: [0, 0],
+        range: 0, // parameter in %
+        max_light: 0, // parameter in %
+        intensity: 0, // Arbitrary power scale
+        angle: 0, // for spot light only
+
+        ctor: function (lt) {
+            if (lt) {
+                this.type = lt.type;
+                this.color = lt.color;
+                this.position = lt.position;
+                this.direction = lt.direction;
+                this.range = lt.range;
+                this.max_light = lt.max_light;
+                this.intensity = lt.intensity;
+                this.angle = lt.angle;
+            }
+        }
+    });
+
+    cc.PSysLight.create = function (lt) {
+        return new cc.PSysLight(lt);
+    };
+
+    cc.PSysLight.MAX_LIGHT_COUNT = 8;
 
     cc.PSys = cc.Node.extend({
         _className: "PSys",
@@ -160,46 +250,61 @@ function createGLProgram(gl, shader_list, transform_feedback_varyings) {
         max_age: 0,
         last_spawn_time: 0.0,
 
+        lights: [],
+        lightCount: 0,
+
         _blendFunc: {},
 
         ctor: function (filename) {
             cc.Node.prototype.ctor.call(this);
 
+            this._loader = new cc.PSys.LoadManager();
+            this._loadTexture(filename);
+
             this._blendFunc.src = cc.BLEND_SRC;
             this._blendFunc.dst = cc.BLEND_DST;
 
-            this._loader = new cc.PSys.LoadManager();
-            
-            this._loadTexture(filename);
+            for (let i = 0; i < cc.PSysLight.MAX_LIGHT_COUNT; ++i) {
+                this.lights[i] = cc.PSysLight.create(null);
+            }
+
+            this.lightCount = 1;
+            this.lights[0].type = 2;
+            this.lights[0].position = [0.0, -200.0];
+            this.lights[0].direction = [1.0, 200.0];
+            this.lights[0].max_light = 0.9;
+            this.lights[0].range = 200;
+            this.lights[0].color = [1.0, 1.0, 1.0];
+            this.lights[0].intensity = 1000;
         },
 
-        _loadTexture: function(filename, rect) {
+        _loadTexture: function (filename, rect) {
             var tex = cc.textureCache.getTextureForKey(filename);
-            if(!tex) {
+            if (!tex) {
                 tex = cc.textureCache.addImage(filename);
             }
-            if(!tex.isLoaded()) {
+            if (!tex.isLoaded()) {
                 this._loader.clear();
-                this._loader.once(tex, function() {
+                this._loader.once(tex, function () {
                     this._loadTexture(filename, rect);
                     this.dispatchEvent("load");
                 }, this);
                 return false;
             }
-            if(!rect) {
+            if (!rect) {
                 var size = tex.getContentSize();
                 rect = cc.rect(0, 0, size.width, size.height);
             }
 
             return this._initTexture(tex, rect);
         },
-        
-        _initTexture: function(texture, rect) {
+
+        _initTexture: function (texture, rect) {
             this._loader.clear();
 
             this._textureLoaded = texture.isLoaded();
-            if(!this._textureLoaded) {
-                this._loader.once(texture, function() {
+            if (!this._textureLoaded) {
+                this._loader.once(texture, function () {
                     this._initTexture(texture, rect);
                     this.dispatchEvent("load");
                 }, this);
@@ -217,7 +322,7 @@ function createGLProgram(gl, shader_list, transform_feedback_varyings) {
                 rect = cc.rect(0, 0, texture.width, texture.height);
             }
             this._particleTextureAtlas = texture;
-            
+
             return true;
         },
 
@@ -226,11 +331,11 @@ function createGLProgram(gl, shader_list, transform_feedback_varyings) {
         }
     });
 
-    (function() {
+    (function () {
         var manager = cc.PSys.LoadManager = function () {
             this.list = [];
         }
-        
+
         manager.prototype.add = function (source, callback, target) {
             if (!source || !source.addEventListener) return;
 
@@ -276,10 +381,10 @@ function createGLProgram(gl, shader_list, transform_feedback_varyings) {
             this._dirty = false;
             this._needDraw = true;
             this._vertices = [
-                {x: 0, y: size.height, u: 0, v: 1},
-                {x: 0, y: 0, u: 0, v: 0},
-                {x: size.width, y: size.height, u: 1, v: 1},
-                {x: size.width, y: 0, u: 1, v: 0}
+                { x: 0, y: size.height, u: 0, v: 1 },
+                { x: 0, y: 0, u: 0, v: 0 },
+                { x: size.width, y: size.height, u: 1, v: 1 },
+                { x: size.width, y: 0, u: 1, v: 0 }
             ];
 
             this._oldRenderState = {
@@ -341,7 +446,19 @@ function createGLProgram(gl, shader_list, transform_feedback_varyings) {
                     num_components: 1,
                     type: gl.FLOAT,
                     divisor: 1
-                }
+                },
+                i_Velocity: {
+                    location: gl.getAttribLocation(this._renderState.renderShader, "i_Velocity"),
+                    num_components: 2,
+                    type: gl.FLOAT,
+                    divisor: 1
+                },
+                i_Size: {
+                    location: gl.getAttribLocation(this._renderState.renderShader, "i_Size"),
+                    num_components: 1,
+                    type: gl.FLOAT,
+                    divisor: 1
+                },
             };
 
             this._renderState.vaos = [
@@ -352,23 +469,11 @@ function createGLProgram(gl, shader_list, transform_feedback_varyings) {
             this._renderState.buffers = [gl.createBuffer(), gl.createBuffer()];
             var sprite_vert_data =
                 new Float32Array([
-                    1, 1,
-                    1, 1,
-
-                    -1, 1,
-                    0, 1,
-
-                    -1, -1,
-                    0, 0,
-
-                    1, 1,
-                    1, 1,
-
-                    -1, -1,
-                    0, 0,
-
-                    1, -1,
-                    1, 0]);
+                    1, 1, 1, 1,
+                    -1, 1, 0, 1,
+                    1, -1, 1, 0,
+                    -1, -1, 0, 0,
+                ]);
             this._renderState.sprite_attrib_locations = {
                 i_Coord: {
                     location: gl.getAttribLocation(this._renderState.renderShader, "i_Coord"),
@@ -390,7 +495,7 @@ function createGLProgram(gl, shader_list, transform_feedback_varyings) {
                     vao: this._renderState.vaos[0],
                     buffers: [{
                         buffer_object: this._renderState.buffers[0],
-                        stride: 4 * 6,
+                        stride: 4 * 7,
                         attribs: this._renderState.render_attrib_locations
                     },
                     {
@@ -403,7 +508,7 @@ function createGLProgram(gl, shader_list, transform_feedback_varyings) {
                     vao: this._renderState.vaos[1],
                     buffers: [{
                         buffer_object: this._renderState.buffers[1],
-                        stride: 4 * 6,
+                        stride: 4 * 7,
                         attribs: this._renderState.render_attrib_locations
                     },
                     {
@@ -476,6 +581,7 @@ function createGLProgram(gl, shader_list, transform_feedback_varyings) {
             gl.viewport(0, 0, this._renderState.viewportSize.width,
                 this._renderState.viewportSize.height);
 
+            if(cc.director.isPaused()) return;
             var dt = Date.now();
             this._renderState.num_part = state.born_particles;
             // Update internal timestamp
@@ -513,6 +619,21 @@ function createGLProgram(gl, shader_list, transform_feedback_varyings) {
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
         };
 
+        proto._uploadLight = function (gl, light, index) {
+            var renderState = this._renderState;
+            gl.uniform1i(gl.getUniformLocation(renderState.renderShader, `lights[${index}].type`), light.type);
+            gl.uniform3f(gl.getUniformLocation(renderState.renderShader, `lights[${index}].color`),
+                light.color[0], light.color[1], light.color[2]);
+            gl.uniform2f(gl.getUniformLocation(renderState.renderShader, `lights[${index}].direction`),
+                light.direction[0], light.direction[1]);
+            gl.uniform2f(gl.getUniformLocation(renderState.renderShader, `lights[${index}].position`),
+                light.position[0], light.position[1]);
+            gl.uniform1f(gl.getUniformLocation(renderState.renderShader, `lights[${index}].range`), light.range);
+            gl.uniform1f(gl.getUniformLocation(renderState.renderShader, `lights[${index}].max_light`), light.max_light);
+            gl.uniform1f(gl.getUniformLocation(renderState.renderShader, `lights[${index}].intensity`), light.intensity);
+            gl.uniform1f(gl.getUniformLocation(renderState.renderShader, `lights[${index}].angle`), light.angle);
+        };
+
         proto.draw = function (ctx) {
             var gl = ctx || cc._renderContext;
             var size = cc.director.getWinSize();
@@ -524,7 +645,7 @@ function createGLProgram(gl, shader_list, transform_feedback_varyings) {
             }
             gl.bindVertexArray(renderState.vaos[renderState.read]);
             gl.useProgram(renderState.renderShader);
-            
+
             gl.activeTexture(gl.TEXTURE0);
             gl.bindTexture(gl.TEXTURE_2D, state._particleTextureAtlas?._webTextureObj);
             gl.uniformMatrix4fv(
@@ -536,12 +657,15 @@ function createGLProgram(gl, shader_list, transform_feedback_varyings) {
             gl.uniform1i(
                 gl.getUniformLocation(renderState.renderShader, "u_Sprite"),
                 0);
-            gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, renderState.num_part);
+            for (let i = 0; i < state.lightCount; ++i) {
+                this._uploadLight(gl, state.lights[i], i);
+            }
+            gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, renderState.num_part);
             for (var i = 0; i < this._renderState.vao_desc.length; i++) {
                 this._resetBufferVAO(gl, this._renderState.vao_desc[i].buffers, this._renderState.vao_desc[i].vao);
             }
 
-            if(!cc.director._paused) {
+            if (!cc.director._paused) {
                 var tmp = renderState.read;
                 renderState.read = renderState.write;
                 renderState.write = tmp;
@@ -620,7 +744,7 @@ function createGLProgram(gl, shader_list, transform_feedback_varyings) {
                 g *= a;
                 b *= a;
             }
-            this._color[0] = ((opacity<<24) | (b<<16) | (g<<8) | r);
+            this._color[0] = ((opacity << 24) | (b << 16) | (g << 8) | r);
             var z = node._vertexZ;
             var vertices = this._vertices;
             var i, len = vertices.length, vertex, offset = vertexDataOffset;
